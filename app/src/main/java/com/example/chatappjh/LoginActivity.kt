@@ -4,6 +4,8 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.android.synthetic.main.activity_login.*
 
 class LoginActivity : AppCompatActivity() {
@@ -18,6 +20,8 @@ class LoginActivity : AppCompatActivity() {
             Log.d("LoginActivity", "email is " + email)
             Log.d( "LoginActivity", "password is $password")
             Log.d("LoginActivity", "Shows login activity")
+
+            emailLogin(email, password)
         }
 
         button_google_login.setOnClickListener {
@@ -33,6 +37,30 @@ class LoginActivity : AppCompatActivity() {
             val intent = Intent(this, SignupActivity::class.java)
             startActivity(intent)
         }
+
+    }
+
+    private fun emailLogin(email: String, password: String) {
+        if (email.isEmpty() || password.isEmpty()){
+            Toast.makeText(this, "Please, enter mail and password", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
+            .addOnCompleteListener {
+                if(!it.isSuccessful) return@addOnCompleteListener
+
+                Log.d("LoginActivity", "Logged in successfully")
+
+                val intent = Intent(this, ChatActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "Failed to login", Toast.LENGTH_SHORT).show()
+            }
+
+
 
     }
 }
