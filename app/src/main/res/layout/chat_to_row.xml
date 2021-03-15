@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingTop="24dp">
+
+    <TextView
+        android:id="@+id/textView_to_chatmessage"
+        android:layout_width="wrap_content"
+        android:minWidth="200dp"
+        android:layout_height="0dp"
+        android:layout_marginEnd="24dp"
+        android:background="@drawable/rounded_bottom_textview"
+        android:maxWidth="250pt"
+        android:padding="16dp"
+        android:text="Message"
+        android:gravity="center"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/textView_chat_to_name_and_time"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:background="@drawable/rounded_top_textview"
+        android:paddingLeft="5dp"
+        android:paddingTop="2dp"
+        android:paddingRight="5dp"
+        android:paddingBottom="2dp"
+        android:text="Name: Date"
+        app:layout_constraintBottom_toTopOf="@+id/textView_to_chatmessage"
+        app:layout_constraintEnd_toEndOf="@+id/textView_to_chatmessage"
+        app:layout_constraintStart_toStartOf="@+id/textView_to_chatmessage" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

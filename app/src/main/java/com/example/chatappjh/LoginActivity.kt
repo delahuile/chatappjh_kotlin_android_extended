@@ -52,8 +52,12 @@ class LoginActivity : AppCompatActivity() {
 
                 Log.d("LoginActivity", "Logged in successfully")
 
+                // redirecting  to chat after successful login
                 val intent = Intent(this, ChatActivity::class.java)
+
+                //clears off the activity stack
                 intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
+
                 startActivity(intent)
             }
             .addOnFailureListener {

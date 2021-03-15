@@ -16,7 +16,7 @@ import kotlinx.android.synthetic.main.activity_signup.*
 class SignupActivity : AppCompatActivity() {
 
     companion object {
-        val TAG = "RegisterActivity"
+        val TAG = "SignupActivity"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,8 +76,9 @@ class SignupActivity : AppCompatActivity() {
                 Log.d("TAG", "successfully added a new user to Firebase database")
 
                 // redirecting  to chat after successful registration
-
                 val intent = Intent(this, ChatActivity::class.java)
+
+                //clears off the activity stack
                 intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(intent)
             }
