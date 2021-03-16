@@ -66,7 +66,7 @@ class SignupActivity : AppCompatActivity() {
 
     private fun sendUserdataToDatabase() {
         val uid = FirebaseAuth.getInstance().uid ?: ""
-        val user = User(edit_signup_username.text.toString(), uid.toString())
+        val user = User(edit_signup_username.text.toString(), uid)
 
         val ref = FirebaseDatabase.getInstance().getReference("/userID_Names/$uid")
 
@@ -88,6 +88,6 @@ class SignupActivity : AppCompatActivity() {
 }
 
 @Parcelize
-class User(val uid: String, val username: String): Parcelable {
+class User(val name: String, val uid: String): Parcelable {
     constructor() : this("", "")
 }
