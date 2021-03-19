@@ -9,14 +9,14 @@
     <TextView
         android:id="@+id/textView_from_chatmessage"
         android:layout_width="wrap_content"
-        android:minWidth="200dp"
         android:layout_height="0dp"
         android:layout_marginStart="24dp"
         android:background="@drawable/rounded_bottom_textview"
+        android:gravity="center"
         android:maxWidth="250pt"
+        android:minWidth="200dp"
         android:padding="16dp"
         android:text="Message"
-        android:gravity="center"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 

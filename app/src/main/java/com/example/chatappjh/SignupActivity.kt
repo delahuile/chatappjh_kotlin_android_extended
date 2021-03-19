@@ -87,7 +87,3 @@ class SignupActivity : AppCompatActivity() {
     }
 }
 
-@Parcelize
-class User(val name: String, val uid: String): Parcelable {
-    constructor() : this("", "")
-}

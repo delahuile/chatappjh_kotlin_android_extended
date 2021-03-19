@@ -11,14 +11,23 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ChatAppJH">
-        <activity android:name=".SetUsernameActivity"></activity>
-        <activity android:name=".ChatActivity" />
-        <activity android:name=".LoginActivity">
+        <activity android:name=".SetUsernameFromSignup">
+            <meta-data android:name="android.support.PARENT_ACTIVITY"
+                android:value=".SignupActivity" />
+        </activity>
+        <activity android:name=".SetUsernameFromChatActivity">
+            <meta-data android:name="android.support.PARENT_ACTIVITY"
+                android:value=".ChatActivity" />
+        </activity>
+        <activity android:name=".ChatActivity" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity android:name=".LoginActivity">
+
         </activity>
         <activity android:name=".SignupActivity" />
     </application>

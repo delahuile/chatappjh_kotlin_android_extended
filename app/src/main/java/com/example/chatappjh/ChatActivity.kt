@@ -34,6 +34,13 @@ class ChatActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
 
+        // If user is not logged in, LoginActivity is launched
+        if (FirebaseAuth.getInstance().currentUser==null) {
+            val intent = Intent(this, LoginActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        }
+
         recyclerview_chat.setAdapter(adapter)
 
         linearLayoutManager = LinearLayoutManager(this)
@@ -48,6 +55,7 @@ class ChatActivity : AppCompatActivity() {
         }
         listenMessages()
 
+        //retrieves username from firebase database
         val ref = FirebaseDatabase.getInstance().getReference("/userID_Names")
         ref.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -68,28 +76,17 @@ class ChatActivity : AppCompatActivity() {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                TODO("Not yet implemented")
+                Log.d(TAG, "Returning to login activity")
             }
         })
-    }
-
-    class ChatMessage(val content: String, val name: String, val timestamp: Long, val uid: String) {
-        constructor() : this("", "", -1, "")
-    }
-
-    class UsernameUID(val name: String, val uid: String) {
-        constructor() : this("", "")
     }
 
     private fun sendMessage(){
         val text = edittext_chat.text.toString()
 
-        //TODO implement getting username from database
-
         val fromID = FirebaseAuth.getInstance().uid
 
         if (fromID == null) return
-
 
         val reference = FirebaseDatabase.getInstance().getReference("/chats").push()
         val message = ChatMessage(text, username, System.currentTimeMillis()/1000, fromID)
@@ -103,8 +100,6 @@ class ChatActivity : AppCompatActivity() {
             .addOnFailureListener {
                 Log.d(TAG, "failed to send message into the database")
             }
-
-
     }
 
     private fun listenMessages(){
@@ -115,7 +110,6 @@ class ChatActivity : AppCompatActivity() {
                 val chatMessage = snapshot.getValue(ChatMessage::class.java)
                 Log.d(TAG, "content is ${chatMessage?.content}")
 
-
                 if (chatMessage==null) return
 
                 if (chatMessage.uid == FirebaseAuth.getInstance().uid) {
@@ -124,8 +118,14 @@ class ChatActivity : AppCompatActivity() {
                 }
 
                 if (chatMessage.uid != FirebaseAuth.getInstance().uid) {
-                    Log.d(TAG, "chatmessage is $chatMessage")
-                    adapter.add(ChatFromMessage(chatMessage.content, chatMessage.name, chatMessage.timestamp))
+                    if (chatMessage.uid == "9999"){
+                        adapter.add(ChatUsernameChange(chatMessage.content, chatMessage.timestamp))
+
+                    } else {
+                        Log.d(TAG, "chatmessage is $chatMessage")
+                        adapter.add(ChatFromMessage(chatMessage.content, chatMessage.name, chatMessage.timestamp))
+                    }
+
                 }
             }
 
@@ -155,6 +155,11 @@ class ChatActivity : AppCompatActivity() {
                 intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(intent)
             }
+            R.id.chat_change_username -> {
+                val intent = Intent(this, SetUsernameFromChatActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+            }
         }
         return super.onOptionsItemSelected(item)
     }
@@ -165,81 +170,3 @@ class ChatActivity : AppCompatActivity() {
     }
 }
 
-class ChatFromMessage(val text: String, val name: String, val timestamp: Long): Item<GroupieViewHolder>(){
-    companion object {
-        val TAG = "ChatFromMessage"
-    }
-
-
-    override fun bind(viewHolder: GroupieViewHolder, position: Int) {
-        Log.d(TAG, "text is $text")
-        Log.d(ChatFromMessage.TAG, "timestamp length is ${timestamp.toString().length}")
-
-        viewHolder.itemView.textView_from_chatmessage.text = text
-        viewHolder.itemView.textView_chat_from_name_and_time.text = if(timestamp.toString().length==10) "$name   ${getDateTimeKotlin(timestamp)}" else "$name   ${getDateTimeReact(timestamp)}"
-    }
-
-    override fun getLayout(): Int {
-        return R.layout.chat_from_row
-    }
-
-    private fun getDateTimeKotlin(timestamp: Long): String? {
-        try {
-            val sdf = SimpleDateFormat("MM/dd/yyyy  HH:mm:ss")
-            val netDate = Date(timestamp*1000)
-            return sdf.format(netDate)
-        } catch (e: Exception) {
-            return e.toString()
-        }
-    }
-
-    private fun getDateTimeReact(timestamp: Long): String? {
-        try {
-            val sdf = SimpleDateFormat("MM/dd/yyyy  HH:mm:ss")
-            val netDate = Date(timestamp)
-            return sdf.format(netDate)
-        } catch (e: Exception) {
-            return e.toString()
-        }
-    }
-}
-
-class ChatToMessage(val text: String, val name: String, val timestamp: Long): Item<GroupieViewHolder>(){
-
-    companion object {
-        val TAG = "ChatToMessage"
-    }
-
-    override fun bind(viewHolder: GroupieViewHolder, position: Int) {
-        Log.d(TAG, "text is $text")
-
-        Log.d(TAG, "timestamp length is ${timestamp.toString().length}")
-
-        viewHolder.itemView.textView_to_chatmessage.text = text
-        viewHolder.itemView.textView_chat_to_name_and_time.text = if(timestamp.toString().length==10) "$name   ${getDateTimeKotlin(timestamp)}" else "$name   ${getDateTimeReact(timestamp)}"
-    }
-
-    override fun getLayout(): Int {
-        return R.layout.chat_to_row
-    }
-
-    private fun getDateTimeKotlin(timestamp: Long): String? {
-        try {
-            val sdf = SimpleDateFormat("MM/dd/yyyy  HH:mm:ss")
-            val netDate = Date(timestamp*1000)
-            return sdf.format(netDate)
-        } catch (e: Exception) {
-            return e.toString()
-        }
-    }
-
-    private fun getDateTimeReact(timestamp: Long): String? {
-        try {
-            val sdf = SimpleDateFormat("MM/dd/yyyy  HH:mm:ss")
-            val netDate = Date(timestamp)
-            return sdf.format(netDate)
-        } catch (e: Exception) {
-            return e.toString()
-        }
-    }
-}
