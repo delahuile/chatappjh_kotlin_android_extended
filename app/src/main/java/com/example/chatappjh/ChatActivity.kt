@@ -1,24 +1,26 @@
 package com.example.chatappjh
+import android.app.UiModeManager
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-import com.xwray.groupie.Item
 import com.xwray.groupie.GroupAdapter
 import com.xwray.groupie.GroupieViewHolder
 import kotlinx.android.synthetic.main.activity_chat.*
-import kotlinx.android.synthetic.main.chat_from_row.view.*
-import kotlinx.android.synthetic.main.chat_from_row.view.textView_from_chatmessage
-import kotlinx.android.synthetic.main.chat_to_row.view.*
-import java.text.SimpleDateFormat
-import java.util.*
 
 private lateinit var linearLayoutManager: LinearLayoutManager
+
+lateinit var signInClient: GoogleSignInClient
+lateinit var signInOptions: GoogleSignInOptions
 
 class ChatActivity : AppCompatActivity() {
 
@@ -33,6 +35,11 @@ class ChatActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
+
+        // Initiates google sign in in case user is logged in with google authorization
+        setupGoogleLogin()
+
+        // AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
 
         // If user is not logged in, LoginActivity is launched
         if (FirebaseAuth.getInstance().currentUser==null) {
@@ -150,10 +157,19 @@ class ChatActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when(item?.itemId){
             R.id.chat_signout -> {
-                FirebaseAuth.getInstance().signOut()
-                val intent = Intent(this, LoginActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(intent)
+                Log.d(TAG, "signInOptions.account != null is ${signInOptions.account != null}")
+                if (signInOptions.account != null) {
+                    signInClient.signOut()
+                    val intent = Intent(this, LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(intent)
+                } else {
+                    signInClient.signOut()
+                    FirebaseAuth.getInstance().signOut()
+                    val intent = Intent(this, LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(intent)
+                }
             }
             R.id.chat_change_username -> {
                 val intent = Intent(this, SetUsernameFromChatActivity::class.java)
@@ -167,6 +183,15 @@ class ChatActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.chat_navigation_menu, menu)
         return super.onCreateOptionsMenu(menu)
+    }
+
+    private fun setupGoogleLogin() {
+        signInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build()
+        signInClient = GoogleSignIn.getClient(this, signInOptions)
+
     }
 }
 

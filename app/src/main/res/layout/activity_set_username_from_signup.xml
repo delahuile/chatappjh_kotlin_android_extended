@@ -4,6 +4,39 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#975FAF"
     tools:context=".SetUsernameFromSignup">
+
+    <TextView
+        android:id="@+id/set_username_textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="24dp"
+        android:text="Enter new username"
+        android:textColor="@color/white"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <EditText
+        android:id="@+id/set_username_new_username_signup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@color/white"
+        android:ems="10"
+        android:hint="Give a new username"
+        android:inputType="textPersonName"
+        app:layout_constraintStart_toStartOf="@+id/set_username_textView2"
+        app:layout_constraintTop_toBottomOf="@+id/set_username_textView2" />
+
+    <Button
+        android:id="@+id/button_set_username_from_chat_signup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Set username"
+        app:layout_constraintStart_toStartOf="@+id/set_username_new_username_signup"
+        app:layout_constraintTop_toBottomOf="@+id/set_username_new_username_signup" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
