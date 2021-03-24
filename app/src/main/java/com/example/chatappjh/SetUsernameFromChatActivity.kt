@@ -1,9 +1,11 @@
 package com.example.chatappjh
 
 import android.content.Intent
+import android.graphics.drawable.AnimationDrawable
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import androidx.constraintlayout.widget.ConstraintLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -14,12 +16,24 @@ import kotlinx.android.synthetic.main.activity_set_username_from_chat.*
 
 
 class SetUsernameFromChatActivity : AppCompatActivity() {
+
+    private lateinit var constraintlayout: ConstraintLayout
+    private lateinit var animationDrawable: AnimationDrawable
+
     companion object {
         val TAG = "SetUsernameFromChat"
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_set_username_from_chat)
+
+        //Starts animation of the setusernamefromchat layout background
+        constraintlayout = findViewById((R.id.set_username_chat_layout))
+        animationDrawable = constraintlayout.background as AnimationDrawable
+        animationDrawable.setEnterFadeDuration(2000)
+        animationDrawable.setExitFadeDuration(4000)
+        animationDrawable.start()
 
         button_set_username_from_chat.setOnClickListener {
             updateUsername()

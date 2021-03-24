@@ -1,18 +1,24 @@
 package com.example.chatappjh
 
 import android.content.Intent
+import android.graphics.drawable.AnimationDrawable
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import androidx.constraintlayout.widget.ConstraintLayout
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.tasks.OnFailureListener
+import com.google.android.gms.tasks.OnSuccessListener
 import com.google.android.gms.tasks.Task
+import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -26,12 +32,24 @@ class LoginActivity : AppCompatActivity() {
     lateinit var signInOptions: GoogleSignInOptions
     private lateinit var auth: FirebaseAuth
 
+    private lateinit var githubAuthProvider: OAuthProvider.Builder
+
+    private lateinit var constraintlayout: ConstraintLayout
+    private lateinit var animationDrawable: AnimationDrawable
+
     var userInDatabase = false
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
+
+        //Starts animation of the login layout background
+        constraintlayout = findViewById((R.id.login_layout))
+        animationDrawable = constraintlayout.background as AnimationDrawable
+        animationDrawable.setEnterFadeDuration(2000)
+        animationDrawable.setExitFadeDuration(4000)
+        animationDrawable.start()
 
         button_login.setOnClickListener {
             val email = edit_login_email.text.toString()
@@ -54,8 +72,13 @@ class LoginActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         setupGoogleLogin()
 
+        githubAuthProvider = OAuthProvider.newBuilder("github.com")
+        githubAuthProvider.addCustomParameter("login", "your-email@gmail.com")
+
         button_github_login.setOnClickListener {
             Log.d("Loginactivity", "redirect to githublogin")
+            Log.d("SignupActivity", "redirect to githubsignup")
+            checkPendingGithubLogin()
         }
 
         button_redirect_to_signup.setOnClickListener {
@@ -141,7 +164,7 @@ class LoginActivity : AppCompatActivity() {
             reference.setValue(message)
                     .addOnSuccessListener {
                         Log.d(SignupActivity.TAG, "usernameUID sent into the database successfully")
-                        val intent = Intent(this, SetUsernameFromSignup::class.java)
+                        val intent = Intent(this, SetUsernameFromSignupActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
                         startActivity(intent)
                     }
@@ -180,5 +203,55 @@ class LoginActivity : AppCompatActivity() {
             }
 
         })
+    }
+
+    private fun checkPendingGithubLogin(){
+
+
+        if (auth.getPendingAuthResult() == null) {
+            // There's no pending result so you need to start the sign-in flow.
+            // See below.
+            startGithubSigninFlow()
+        } else {
+            val pendingResultTask: Task<AuthResult> = auth.getPendingAuthResult()
+            // There's something already here! Finish the sign-in for your user.
+            pendingResultTask
+                .addOnSuccessListener {
+                    // User is signed in.
+                    // IdP data available in
+                    Log.d(
+                        SignupActivity.TAG,
+                        "it.getAdditionalUserInfo().getProfile() is ${
+                            it.getAdditionalUserInfo().getProfile()
+                        }"
+                    )
+                    // The OAuth access token can also be retrieved:
+                    // authResult.getCredential().getAccessToken().
+                    checkIfUserIsAlreadyInDatabase()
+                }
+                .addOnFailureListener {
+                    Log.d(SignupActivity.TAG, "Failed to complete pending github sign-up")
+                    // Handle failure.
+                }
+        }
+    }
+
+    private fun startGithubSigninFlow(){
+        auth
+            .startActivityForSignInWithProvider( /* activity= */this, githubAuthProvider.build())
+            .addOnSuccessListener(
+                OnSuccessListener<AuthResult?> {
+                    // User is signed in.
+                    // IdP data available in
+                    // authResult.getAdditionalUserInfo().getProfile().
+                    // The OAuth access token can also be retrieved:
+                    // authResult.getCredential().getAccessToken().
+                    checkIfUserIsAlreadyInDatabase()
+                })
+            .addOnFailureListener(
+                OnFailureListener {
+                    // Handle failure.
+                    Log.d(SignupActivity.TAG, "Failed to complete github sign-up")
+                })
     }
 }

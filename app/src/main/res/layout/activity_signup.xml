@@ -4,7 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#975FAF"
+    android:background="@drawable/gradient_list"
+    android:id="@+id/signup_layout"
     tools:context=".SignupActivity">
 
 
@@ -15,7 +16,7 @@
         android:layout_marginStart="24dp"
         android:layout_marginTop="24dp"
         android:layout_marginEnd="24dp"
-        android:background="#FFFFFF"
+        android:background="@drawable/rounded_edittext_login_and_signup"
         android:ems="10"
         android:hint="Username"
         android:inputType="textPersonName"
@@ -28,7 +29,7 @@
         android:layout_width="0dp"
         android:layout_height="50dp"
         android:layout_marginTop="8dp"
-        android:background="@color/white"
+        android:background="@drawable/rounded_edittext_login_and_signup"
         android:ems="10"
         android:hint="Email"
         android:inputType="textEmailAddress"
@@ -41,7 +42,7 @@
         android:layout_width="0dp"
         android:layout_height="50dp"
         android:layout_marginTop="8dp"
-        android:background="@color/white"
+        android:background="@drawable/rounded_edittext_login_and_signup"
         android:ems="10"
         android:hint="Password"
         android:inputType="textPassword"
@@ -80,13 +81,14 @@
         android:id="@+id/textView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
         android:layout_marginTop="24dp"
         android:layout_marginEnd="24dp"
         android:text="You can also signup with the following services:"
         android:textColor="#FFFFFF"
         android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="@+id/button_signup"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/button_signup" />
 
     <TextView

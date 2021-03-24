@@ -11,7 +11,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ChatAppJH">
-        <activity android:name=".SetUsernameFromSignup">
+        <activity android:name=".SetUsernameFromSignupActivity">
             <meta-data android:name="android.support.PARENT_ACTIVITY"
                 android:value=".SignupActivity" />
         </activity>

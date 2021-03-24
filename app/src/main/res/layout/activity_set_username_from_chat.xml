@@ -4,32 +4,23 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#975FAF"
+    android:background="@drawable/gradient_list"
+    android:id="@+id/set_username_chat_layout"
     tools:context=".SetUsernameFromChatActivity">
 
-
-    <TextView
-        android:id="@+id/set_username_textView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="24dp"
-        android:text="Enter new username"
-        android:textColor="@color/white"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
 
     <EditText
         android:id="@+id/set_username_new_username"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="@color/white"
+        android:layout_height="50dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="32dp"
+        android:background="@drawable/rounded_edittext_login_and_signup"
         android:ems="10"
-        android:hint="Give a new username"
+        android:hint="Enter a new username"
         android:inputType="textPersonName"
-        app:layout_constraintStart_toStartOf="@+id/set_username_textView"
-        app:layout_constraintTop_toBottomOf="@+id/set_username_textView" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/button_set_username_from_chat"
