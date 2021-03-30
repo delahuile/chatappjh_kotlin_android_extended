@@ -28,6 +28,9 @@ class SetUsernameFromChatActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_set_username_from_chat)
 
+        val actionbar = supportActionBar
+        actionbar!!.setDisplayHomeAsUpEnabled(true)
+
         //Starts animation of the setusernamefromchat layout background
         constraintlayout = findViewById((R.id.set_username_chat_layout))
         animationDrawable = constraintlayout.background as AnimationDrawable
@@ -38,6 +41,17 @@ class SetUsernameFromChatActivity : AppCompatActivity() {
         button_set_username_from_chat.setOnClickListener {
             updateUsername()
         }
+    }
+
+    override fun onBackPressed() {
+        val intent = Intent(this@SetUsernameFromChatActivity, ChatActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        onBackPressed()
+        return true
     }
 
     private fun updateUsername() {

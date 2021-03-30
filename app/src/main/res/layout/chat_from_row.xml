@@ -17,6 +17,7 @@
         android:minWidth="200dp"
         android:padding="16dp"
         android:text="Message"
+        android:textColor="#1E1E1E"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -31,6 +32,7 @@
         android:paddingRight="5dp"
         android:paddingBottom="2dp"
         android:text="Name: Date"
+        android:textColor="#1E1E1E"
         app:layout_constraintBottom_toTopOf="@+id/textView_from_chatmessage"
         app:layout_constraintEnd_toEndOf="@+id/textView_from_chatmessage"
         app:layout_constraintStart_toStartOf="@+id/textView_from_chatmessage" />

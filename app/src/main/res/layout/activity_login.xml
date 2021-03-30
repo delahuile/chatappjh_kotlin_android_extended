@@ -8,6 +8,7 @@
     android:background="@drawable/gradient_list"
     tools:context=".LoginActivity">
 
+
     <EditText
         android:id="@+id/edit_login_email"
         android:layout_width="0dp"

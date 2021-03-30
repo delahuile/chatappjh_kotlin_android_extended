@@ -11,10 +11,11 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:background="@drawable/rounded_namechange_textview"
-        android:text="TextView"
         android:gravity="center"
-        android:padding="8dp"
         android:maxWidth="240dp"
+        android:padding="8dp"
+        android:text="TextView"
+        android:textColor="#1E1E1E"
 
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
