@@ -13,7 +13,7 @@
         android:layout_marginStart="16dp"
         android:background="@drawable/rounded_bottom_textview"
         android:gravity="center"
-        android:maxWidth="250pt"
+        android:maxWidth="250dp"
         android:minWidth="200dp"
         android:padding="16dp"
         android:text="Message"

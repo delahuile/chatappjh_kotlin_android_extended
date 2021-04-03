@@ -134,6 +134,8 @@ class ChatActivity : AppCompatActivity() {
                     }
 
                 }
+                // Scrolls recyclerview to the position of the last message
+                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
             }
 
             override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
