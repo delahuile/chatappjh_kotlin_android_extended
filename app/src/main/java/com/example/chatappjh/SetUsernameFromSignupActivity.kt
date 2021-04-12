@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -57,6 +58,12 @@ class SetUsernameFromSignupActivity : AppCompatActivity() {
                         var dir = ref.child(child.key.toString())
                         var newUsernameUID = UsernameUID(newName, user.uid)
                         dir.setValue(newUsernameUID).addOnSuccessListener {
+
+                            // let's also update firebase auth DisplayName
+                            var currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                            var profileUpdates = UserProfileChangeRequest.Builder().setDisplayName(newName).build()
+                            currentUser.updateProfile(profileUpdates)
+
                             val intent = Intent(this@SetUsernameFromSignupActivity, ChatActivity::class.java)
                             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
                             startActivity(intent)
