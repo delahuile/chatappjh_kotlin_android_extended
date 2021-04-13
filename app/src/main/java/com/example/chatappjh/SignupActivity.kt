@@ -16,10 +16,7 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.OnFailureListener
 import com.google.android.gms.tasks.OnSuccessListener
 import com.google.android.gms.tasks.Task
-import com.google.firebase.auth.AuthResult
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.OAuthProvider
+import com.google.firebase.auth.*
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -123,6 +120,11 @@ class SignupActivity : AppCompatActivity() {
         ref.setValue(user)
             .addOnSuccessListener {
                 Log.d("TAG", "successfully added a new user to Firebase database")
+
+                // let's also update firebase auth DisplayName
+                var currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                var profileUpdates = UserProfileChangeRequest.Builder().setDisplayName(edit_signup_username.text.toString()).build()
+                currentUser.updateProfile(profileUpdates)
 
                 // redirecting  to chat after successful registration
                 val intent = Intent(this, ChatActivity::class.java)
