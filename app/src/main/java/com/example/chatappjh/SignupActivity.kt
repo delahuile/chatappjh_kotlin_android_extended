@@ -178,7 +178,7 @@ class SignupActivity : AppCompatActivity() {
             .addOnCompleteListener(OnCompleteListener<QuerySnapshot?> { task ->
                 if (task.isSuccessful) {
                     for (document in task.result!!) {
-                        val user = document as UsernameUID
+                        val user = document.toObject(UsernameUID::class.java)
                         if (user?.uid == FirebaseAuth.getInstance().uid) {
                             userInDatabase = true
                             Log.d(

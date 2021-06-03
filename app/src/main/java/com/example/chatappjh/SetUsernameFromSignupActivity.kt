@@ -53,9 +53,9 @@ class SetUsernameFromSignupActivity : AppCompatActivity() {
             .addOnCompleteListener(OnCompleteListener<QuerySnapshot?> { task ->
                 if (task.isSuccessful) {
                     for (document in task.result!!) {
-                        val user = document as UsernameUID
+                        val user = document.toObject(UsernameUID::class.java)
                         if (user.uid == FirebaseAuth.getInstance().uid){
-                            FirebaseFirestore.getInstance().collection("userID_Names").document(user.uid)
+                            FirebaseFirestore.getInstance().collection("userID_Names").document(document.id)
                                 .update("name", newName)
                                 .addOnSuccessListener {
 

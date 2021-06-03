@@ -70,9 +70,12 @@ class SetUsernameFromChatActivity : AppCompatActivity() {
             .addOnCompleteListener(OnCompleteListener<QuerySnapshot?> { task ->
                 if (task.isSuccessful) {
                     for (document in task.result!!) {
-                        val user = document as UsernameUID
+                        val user = document.toObject(UsernameUID::class.java)
+                        Log.d(TAG, "user UID is" + user.uid)
+                        Log.d(TAG, "FirebaseAuth user uid is" + FirebaseAuth.getInstance().uid)
                         if (user.uid == FirebaseAuth.getInstance().uid){
-                            FirebaseFirestore.getInstance().collection("userID_Names").document(user.uid)
+                            Log.d(TAG,"document id is " + FirebaseFirestore.getInstance().collection("userID_Names").document(user.uid))
+                            FirebaseFirestore.getInstance().collection("userID_Names").document(document.id)
                                 .update("name", newName)
                                 .addOnSuccessListener {
 
@@ -92,6 +95,8 @@ class SetUsernameFromChatActivity : AppCompatActivity() {
                                 .addOnFailureListener {
                                     Log.d(TAG, "Failed to change username")
                                 }
+                        } else {
+                            Log.d(TAG, "user not found")
                         }
                     }
                 } else {

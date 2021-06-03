@@ -70,6 +70,8 @@ class ChatActivity : AppCompatActivity() {
 
         recyclerview_chat.layoutManager = linearLayoutManager
 
+        listenMessages()
+
         //retrieves username from firebase database
         val docRef = FirebaseFirestore.getInstance().collection("userID_Names")
         docRef.addSnapshotListener { snapshot, e ->
@@ -103,7 +105,6 @@ class ChatActivity : AppCompatActivity() {
             Log.d(TAG, "Attemting to send a chatmessage to the database")
             sendMessage()
         }
-        listenMessages()
 
     }
 
