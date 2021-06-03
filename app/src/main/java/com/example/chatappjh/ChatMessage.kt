@@ -1,5 +1,8 @@
 package com.example.chatappjh
 
-class ChatMessage(val content: String, val name: String, val timestamp: Long, val uid: String) {
-    constructor() : this("", "", -1, "")
+import com.google.firebase.Timestamp
+
+class ChatMessage(val content: String, val name: String, val timestamp: Timestamp, val uid: String) {
+    constructor() : this("", "", Timestamp(100L, 10), "")
+    
 }

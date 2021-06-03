@@ -1,26 +1,38 @@
 package com.example.chatappjh
-import android.app.UiModeManager
+
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.tasks.OnCompleteListener
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import com.google.firebase.firestore.DocumentChange
+import com.google.firebase.firestore.EventListener
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.QuerySnapshot
 import com.xwray.groupie.GroupAdapter
 import com.xwray.groupie.GroupieViewHolder
 import kotlinx.android.synthetic.main.activity_chat.*
+import kotlin.collections.ArrayList
+
 
 private lateinit var linearLayoutManager: LinearLayoutManager
 
 lateinit var signInClient: GoogleSignInClient
 lateinit var signInOptions: GoogleSignInOptions
+lateinit var username_uid_key: String
+lateinit var chatMessageIDs: ArrayList<String>
+
 
 class ChatActivity : AppCompatActivity() {
 
@@ -35,6 +47,8 @@ class ChatActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
+
+        chatMessageIDs = ArrayList<String>()
 
         // Initiates google sign in in case user is logged in with google authorization
         setupGoogleLogin()
@@ -56,36 +70,41 @@ class ChatActivity : AppCompatActivity() {
 
         recyclerview_chat.layoutManager = linearLayoutManager
 
+        //retrieves username from firebase database
+        val docRef = FirebaseFirestore.getInstance().collection("userID_Names")
+        docRef.addSnapshotListener { snapshot, e ->
+
+            if (e != null) {
+                Log.w(TAG, "Listen failed.", e)
+                return@addSnapshotListener
+            }
+
+            if (snapshot != null) {
+                snapshot!!.forEach {
+                    Log.d(TAG, "logged users uid is ${FirebaseAuth.getInstance().uid}")
+                    val user = it.toObject(UsernameUID::class.java)
+                    Log.d(TAG, "it.getvalue is ${user.uid}")
+
+                    if (user.uid == FirebaseAuth.getInstance().uid) {
+                        username_uid_key = it.id
+                        username = user.name
+                        Log.d(TAG, "username set to $username")
+                    }
+                    Log.d(TAG, it.id + " => " + it.data)
+                }
+                // Scrolls recyclerview to the position of the last message
+                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
+            } else {
+                Log.d(TAG, "Current data: null")
+            }
+        }
+
         button_send_chat.setOnClickListener {
             Log.d(TAG, "Attemting to send a chatmessage to the database")
             sendMessage()
         }
         listenMessages()
 
-        //retrieves username from firebase database
-        val ref = FirebaseDatabase.getInstance().getReference("/userID_Names")
-        ref.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-
-                Log.d(TAG, "logged users uid is ${FirebaseAuth.getInstance().uid}")
-                val children = snapshot!!.children
-
-                children.forEach {
-                    Log.d(TAG, "logged users uid is ${FirebaseAuth.getInstance().uid}")
-                    val user = it.getValue(UsernameUID::class.java)
-                    Log.d(TAG, "it.getvalue is ${it.getValue(UsernameUID::class.java)?.uid}")
-                    if(user==null) return
-                    if (user.uid == FirebaseAuth.getInstance().uid) {
-                        username = user.name
-                        Log.d(TAG, "username set to $username")
-                    }
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.d(TAG, "Returning to login activity")
-            }
-        })
     }
 
     private fun sendMessage(){
@@ -95,11 +114,9 @@ class ChatActivity : AppCompatActivity() {
 
         if (fromID == null) return
 
-        val reference = FirebaseDatabase.getInstance().getReference("/chats").push()
-        val message = ChatMessage(text, username, System.currentTimeMillis()/1000, fromID)
-
-        reference.setValue(message)
-            .addOnSuccessListener {
+        val message = ChatMessage(text, username, Timestamp.now(), fromID)
+        FirebaseFirestore.getInstance().collection("chats").add(message)
+            .addOnCompleteListener {
                 Log.d(TAG, "message send into the database successfully")
                 edittext_chat.getText().clear()
                 recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
@@ -110,50 +127,41 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun listenMessages(){
-        val ref = FirebaseDatabase.getInstance().getReference("/chats")
 
-        ref.addChildEventListener(object: ChildEventListener {
-            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                val chatMessage = snapshot.getValue(ChatMessage::class.java)
-                Log.d(TAG, "content is ${chatMessage?.content}")
+        FirebaseFirestore.getInstance().collection("chats")
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshots, e ->
+            if (e != null) {
+                Log.w(TAG, "listen:error", e)
+                return@addSnapshotListener
+            }
 
-                if (chatMessage==null) return
+            for (dc in snapshots!!.documentChanges) {
+                when (dc.type) {
+                    DocumentChange.Type.ADDED -> {
+                        if (dc.document is Number) {
+                            Log.d (TAG,"Chatmessage document if of type number")
+                        }
+                        val chatMessage= dc.document.toObject(ChatMessage::class.java)
+                        if (chatMessage.uid == FirebaseAuth.getInstance().uid) {
+                            Log.d(TAG, "chatmessage is $chatMessage")
+                            adapter.add(ChatToMessage(chatMessage.content, chatMessage.name, chatMessage.timestamp.seconds))
+                        }
 
-                if (chatMessage.uid == FirebaseAuth.getInstance().uid) {
-                    Log.d(TAG, "chatmessage is $chatMessage")
-                    adapter.add(ChatToMessage(chatMessage.content, chatMessage.name, chatMessage.timestamp))
-                }
-
-                if (chatMessage.uid != FirebaseAuth.getInstance().uid) {
-                    if (chatMessage.uid == "9999"){
-                        adapter.add(ChatUsernameChange(chatMessage.content, chatMessage.timestamp))
-
-                    } else {
-                        Log.d(TAG, "chatmessage is $chatMessage")
-                        adapter.add(ChatFromMessage(chatMessage.content, chatMessage.name, chatMessage.timestamp))
+                        if (chatMessage.uid != FirebaseAuth.getInstance().uid) {
+                            if (chatMessage.uid == "9999"){
+                                adapter.add(ChatUsernameChange(chatMessage.content, chatMessage.timestamp.seconds))
+                            } else {
+                                Log.d(TAG, "chatmessage is $chatMessage")
+                                adapter.add(ChatFromMessage(chatMessage.content, chatMessage.name, chatMessage.timestamp.seconds))
+                            }
+                        }
                     }
-
+                    DocumentChange.Type.MODIFIED -> Log.d(TAG, "Modified city: ${dc.document.data}")
+                    DocumentChange.Type.REMOVED -> Log.d(TAG, "Removed city: ${dc.document.data}")
                 }
-                // Scrolls recyclerview to the position of the last message
-                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
             }
-
-            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
-
-            }
-
-            override fun onChildRemoved(snapshot: DataSnapshot) {
-
-            }
-
-            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {
-
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-
-            }
-        })
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

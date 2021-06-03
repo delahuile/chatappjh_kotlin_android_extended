@@ -23,6 +23,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_login.*
 
 class LoginActivity : AppCompatActivity() {
@@ -38,6 +39,10 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var animationDrawable: AnimationDrawable
 
     var userInDatabase = false
+
+    companion object {
+        val TAG = "LoginActivity"
+    }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -151,41 +156,13 @@ class LoginActivity : AppCompatActivity() {
         signInClient = GoogleSignIn.getClient(this, signInOptions)
     }
 
-    private fun pushUserToUsernameUID() {
-        val name = ""
-        val fromID = FirebaseAuth.getInstance().uid
-
-        if (!userInDatabase){
-            if (fromID == null) return
-
-            val reference = FirebaseDatabase.getInstance().getReference("/userID_Names").push()
-            val message = UsernameUID(name, fromID)
-
-            reference.setValue(message)
-                    .addOnSuccessListener {
-                        Log.d(SignupActivity.TAG, "usernameUID sent into the database successfully")
-                        val intent = Intent(this, SetUsernameFromSignupActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        startActivity(intent)
-                    }
-                    .addOnFailureListener {
-                        Log.d(SignupActivity.TAG, "failed to send usernameUID into the database")
-                    }
-
-        } else {
-            val intent = Intent(this, ChatActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
-        }
-    }
-
     private fun checkIfUserIsAlreadyInDatabase(){
 
         val ref = FirebaseDatabase.getInstance().getReference("/userID_Names")
         ref.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
 
-                Log.d(ChatActivity.TAG, "logged users uid is ${FirebaseAuth.getInstance().uid}")
+                Log.d(TAG, "logged users uid is ${FirebaseAuth.getInstance().uid}")
                 val children = snapshot!!.children
 
                 children.forEach {
@@ -199,7 +176,7 @@ class LoginActivity : AppCompatActivity() {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Log.d(ChatActivity.TAG, "Returning to login activity")
+                Log.d(TAG, "Returning to login activity")
             }
 
         })
@@ -233,6 +210,33 @@ class LoginActivity : AppCompatActivity() {
                     Log.d(SignupActivity.TAG, "Failed to complete pending github sign-up")
                     // Handle failure.
                 }
+        }
+    }
+
+    private fun pushUserToUsernameUID() {
+        val name = ""
+        val fromID = FirebaseAuth.getInstance().uid
+
+        if (!userInDatabase){
+            if (fromID == null) return
+
+            val message = UsernameUID(name, fromID)
+
+            FirebaseFirestore.getInstance().collection("userID_Names").add(message)
+                .addOnCompleteListener {
+                    Log.d(TAG, "usernameUID sent into the database successfully")
+                    val intent = Intent(this, SetUsernameFromSignupActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(intent)
+                }
+                .addOnFailureListener {
+                    Log.d(TAG, "failed to send usernameUID into the database")
+                }
+
+        } else {
+            val intent = Intent(this, ChatActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
         }
     }
 
