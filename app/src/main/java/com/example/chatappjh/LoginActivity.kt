@@ -12,6 +12,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.tasks.OnCompleteListener
 import com.google.android.gms.tasks.OnFailureListener
 import com.google.android.gms.tasks.OnSuccessListener
 import com.google.android.gms.tasks.Task
@@ -24,6 +25,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.QuerySnapshot
 import kotlinx.android.synthetic.main.activity_login.*
 
 class LoginActivity : AppCompatActivity() {
@@ -158,28 +160,55 @@ class LoginActivity : AppCompatActivity() {
 
     private fun checkIfUserIsAlreadyInDatabase(){
 
-        val ref = FirebaseDatabase.getInstance().getReference("/userID_Names")
-        ref.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-
-                Log.d(TAG, "logged users uid is ${FirebaseAuth.getInstance().uid}")
-                val children = snapshot!!.children
-
-                children.forEach {
-                    val user = it.getValue(UsernameUID::class.java)
-                    if (user?.uid == FirebaseAuth.getInstance().uid) {
-                        userInDatabase = true
-                        Log.d(SignupActivity.TAG, "User with uid ${FirebaseAuth.getInstance().uid} is already in database")
+        FirebaseFirestore.getInstance().collection("userID_Names")
+            .get()
+            .addOnCompleteListener(OnCompleteListener<QuerySnapshot?> { task ->
+                if (task.isSuccessful) {
+                    Log.d(SignupActivity.TAG, "tag result successful")
+                    for (document in task.result!!) {
+                        val user = document.toObject(UsernameUID::class.java)
+                        Log.d(TAG, "user.uid is " + user.uid)
+                        Log.d(TAG, "FirebaseAuth UID is " + FirebaseAuth.getInstance().uid)
+                        if (user?.uid == FirebaseAuth.getInstance().uid) {
+                            userInDatabase = true
+                            Log.d(
+                                SignupActivity.TAG,
+                                "User with uid ${FirebaseAuth.getInstance().uid} is already in database"
+                            )
+                        }
                     }
+                    pushUserToUsernameUID()
+                } else {
+                    Log.w(TAG, "Error getting documents.", task.exception)
                 }
-                pushUserToUsernameUID()
-            }
+            })
+    }
 
-            override fun onCancelled(error: DatabaseError) {
-                Log.d(TAG, "Returning to login activity")
-            }
+    private fun pushUserToUsernameUID() {
+        val name = ""
+        val fromID = FirebaseAuth.getInstance().uid
 
-        })
+        if (!userInDatabase){
+            if (fromID == null) return
+
+            val message = UsernameUID(name, fromID)
+
+            FirebaseFirestore.getInstance().collection("userID_Names").add(message)
+                .addOnCompleteListener {
+                    Log.d(SignupActivity.TAG, "usernameUID sent into the database successfully")
+                    val intent = Intent(this, SetUsernameFromSignupActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(intent)
+                }
+                .addOnFailureListener {
+                    Log.d(SignupActivity.TAG, "failed to send usernameUID into the database")
+                }
+
+        } else {
+            val intent = Intent(this, ChatActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        }
     }
 
     private fun checkPendingGithubLogin(){
@@ -213,32 +242,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun pushUserToUsernameUID() {
-        val name = ""
-        val fromID = FirebaseAuth.getInstance().uid
 
-        if (!userInDatabase){
-            if (fromID == null) return
-
-            val message = UsernameUID(name, fromID)
-
-            FirebaseFirestore.getInstance().collection("userID_Names").add(message)
-                .addOnCompleteListener {
-                    Log.d(TAG, "usernameUID sent into the database successfully")
-                    val intent = Intent(this, SetUsernameFromSignupActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    startActivity(intent)
-                }
-                .addOnFailureListener {
-                    Log.d(TAG, "failed to send usernameUID into the database")
-                }
-
-        } else {
-            val intent = Intent(this, ChatActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
-        }
-    }
 
     private fun startGithubSigninFlow(){
         auth

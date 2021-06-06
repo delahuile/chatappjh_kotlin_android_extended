@@ -154,13 +154,19 @@ class SignupActivity : AppCompatActivity() {
 
     private fun googleFirebaseAuth(acct: GoogleSignInAccount) {
         val credential = GoogleAuthProvider.getCredential(acct.idToken, null)
-        auth.signInWithCredential(credential).addOnCompleteListener {
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener {
             if (it.isSuccessful) {
+                Log.d(TAG, "google authorization successful")
                 checkIfUserIsAlreadyInDatabase()
             } else {
                 Toast.makeText(this, "Google sign in failed:(", Toast.LENGTH_LONG).show()
+                Log.d(TAG, "failed to sign in with google authorization")
             }
         }
+            .addOnFailureListener {
+                Log.d(TAG, "Failed to sign in with google auth, cause: " + it.cause)
+            }
     }
 
     private fun setupGoogleLogin() {
@@ -177,8 +183,11 @@ class SignupActivity : AppCompatActivity() {
             .get()
             .addOnCompleteListener(OnCompleteListener<QuerySnapshot?> { task ->
                 if (task.isSuccessful) {
+                    Log.d(TAG, "tag result successful")
                     for (document in task.result!!) {
                         val user = document.toObject(UsernameUID::class.java)
+                        Log.d(TAG, "user.uid is " + user.uid)
+                        Log.d(TAG, "FirebaseAuth UID is " + FirebaseAuth.getInstance().uid)
                         if (user?.uid == FirebaseAuth.getInstance().uid) {
                             userInDatabase = true
                             Log.d(
