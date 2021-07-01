@@ -50,7 +50,7 @@
          bounds.
          -->
 
-    <ImageView
+    <com.github.chrisbanes.photoview.PhotoView
         android:id="@+id/expanded_image_from"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
