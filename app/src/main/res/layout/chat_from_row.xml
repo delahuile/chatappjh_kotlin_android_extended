@@ -25,7 +25,7 @@
         android:id="@+id/textView_chat_from_name_and_time"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp"
+        android:layout_marginBottom="2dp"
         android:background="@drawable/rounded_top_textview"
         android:paddingLeft="5dp"
         android:paddingTop="2dp"

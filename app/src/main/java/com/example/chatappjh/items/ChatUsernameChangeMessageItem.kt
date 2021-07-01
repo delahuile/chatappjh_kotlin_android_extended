@@ -1,15 +1,14 @@
-package com.example.chatappjh
+package com.example.chatappjh.items
 
 import android.util.Log
+import com.example.chatappjh.R
 import com.xwray.groupie.GroupieViewHolder
 import com.xwray.groupie.Item
-import kotlinx.android.synthetic.main.chat_from_row.view.*
-import kotlinx.android.synthetic.main.chat_from_row.view.textView_from_chatmessage
 import kotlinx.android.synthetic.main.chat_message_username_changed.view.*
 import java.text.SimpleDateFormat
 import java.util.*
 
-class ChatUsernameChange (val text: String, val timestamp: Long): Item<GroupieViewHolder>() {
+class ChatUsernameChangeMessageItem (val text: String, val timestamp: Long): Item<GroupieViewHolder>() {
     companion object {
         val TAG = "ChatUsernameChange"
     }
@@ -17,7 +16,7 @@ class ChatUsernameChange (val text: String, val timestamp: Long): Item<GroupieVi
 
     override fun bind(viewHolder: GroupieViewHolder, position: Int) {
         Log.d(TAG, "text is $text")
-        Log.d(ChatFromMessage.TAG, "timestamp length is ${timestamp.toString().length}")
+        Log.d(ChatFromMessageItem.TAG, "timestamp length is ${timestamp.toString().length}")
 
         val time = if(timestamp.toString().length==10) "$${getDateTimeKotlin(timestamp)}" else "${getDateTimeReact(timestamp)}"
 

@@ -1,28 +1,33 @@
 package com.example.chatappjh
 
+import android.app.Activity
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.chatappjh.items.*
+import com.example.chatappjh.models.*
+import com.example.chatappjh.utils.BitmapResolver
+import com.example.chatappjh.utils.ImageUtil
+import com.example.chatappjh.utils.ImageUtil.scaleBitmap
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.firestore.DocumentChange
-import com.google.firebase.firestore.EventListener
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.QuerySnapshot
 import com.xwray.groupie.GroupAdapter
 import com.xwray.groupie.GroupieViewHolder
 import kotlinx.android.synthetic.main.activity_chat.*
+import java.io.ByteArrayOutputStream
+import java.util.*
 import kotlin.collections.ArrayList
 
 
@@ -33,6 +38,11 @@ lateinit var signInOptions: GoogleSignInOptions
 lateinit var username_uid_key: String
 lateinit var chatMessageIDs: ArrayList<String>
 
+private const val RC_SELECT_IMAGE = 5
+
+public var displayWidth = 1
+public var displayHeight = 1
+
 
 class ChatActivity : AppCompatActivity() {
 
@@ -40,13 +50,20 @@ class ChatActivity : AppCompatActivity() {
         val TAG = "ChatActivity"
     }
 
+
     var username = ""
 
     val adapter = GroupAdapter<GroupieViewHolder>()
 
+    private val firestoreInstance: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
+
+        val display = resources.displayMetrics
+        displayWidth = display.widthPixels
+        displayHeight = display.heightPixels
 
         chatMessageIDs = ArrayList<String>()
 
@@ -103,19 +120,28 @@ class ChatActivity : AppCompatActivity() {
 
         button_send_chat.setOnClickListener {
             Log.d(TAG, "Attemting to send a chatmessage to the database")
-            sendMessage()
+            sendTextMessage()
+        }
+
+        imageButton_chat.setOnClickListener {
+            val intent = Intent().apply{
+                type = "image/*"
+                action = Intent.ACTION_GET_CONTENT
+                putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png"))
+            }
+            startActivityForResult(Intent.createChooser(intent, "Select image"), RC_SELECT_IMAGE)
         }
 
     }
 
-    private fun sendMessage(){
+    private fun sendTextMessage(){
         val text = edittext_chat.text.toString()
 
         val fromID = FirebaseAuth.getInstance().uid
 
         if (fromID == null) return
 
-        val message = ChatMessage(text, username, Timestamp.now(), fromID)
+        val message = ChatMessage(text, username, Timestamp.now(), fromID, MessageType.TEXT)
         FirebaseFirestore.getInstance().collection("chats").add(message)
             .addOnCompleteListener {
                 Log.d(TAG, "message send into the database successfully")
@@ -127,6 +153,55 @@ class ChatActivity : AppCompatActivity() {
             }
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if(requestCode == RC_SELECT_IMAGE && resultCode == Activity.RESULT_OK && data != null && data.data != null){
+            val imagePath = data.data
+            val bitmapResolver = BitmapResolver()
+
+            val imageBitmap = bitmapResolver.getBitmap(contentResolver, imagePath)
+            val thumbImageBmp: Bitmap
+            val expandedImageBmp: Bitmap
+
+            if (imageBitmap!!.height > 500 || imageBitmap!!.height > 500) {
+                thumbImageBmp = scaleBitmap(imageBitmap, 500, 500)
+            } else {
+                thumbImageBmp = imageBitmap
+            }
+
+            if (imageBitmap!!.height > 1200 || imageBitmap!!.height > 1200){
+                expandedImageBmp = scaleBitmap(imageBitmap, 1200, 1200)
+            } else {
+                expandedImageBmp = imageBitmap
+            }
+
+            val thumbOutputStream = ByteArrayOutputStream()
+            val expandedOutputStream = ByteArrayOutputStream()
+
+            thumbImageBmp!!.compress(Bitmap.CompressFormat.JPEG, 85, thumbOutputStream)
+            expandedImageBmp!!.compress(Bitmap.CompressFormat.JPEG, 85, expandedOutputStream)
+
+            val thumbImageBytes = thumbOutputStream.toByteArray()
+            val expandedImageBytes = expandedOutputStream.toByteArray()
+
+            ImageUtil.uploadMessageImage(thumbImageBytes, true) { imagePathThumb ->
+
+                ImageUtil.uploadMessageImage(expandedImageBytes, false) { imagePathExpanded ->
+
+                    val messageToSend =
+                        ImageMessage(imagePathThumb, imagePathExpanded, username, Timestamp.now(), FirebaseAuth.getInstance().currentUser!!.uid, MessageType.IMAGE)
+                    firestoreInstance.collection("chats/").add(messageToSend)
+                        .addOnCompleteListener{
+                            Log.d(TAG, "Image send into the Firebase storage successfully")
+                        }
+                }
+            }
+        }
+    }
+
+    //TODO: separate message listening into its own thread and start a new thread from this thread for every
+    // imagemessage that performs image processing and returns processed image to the listening thread
+    // and listening thread returns imageMessage to UI main thread that adds imagemessage to adapter
     private fun listenMessages(){
 
         FirebaseFirestore.getInstance().collection("chats")
@@ -140,26 +215,39 @@ class ChatActivity : AppCompatActivity() {
             for (dc in snapshots!!.documentChanges) {
                 when (dc.type) {
                     DocumentChange.Type.ADDED -> {
-                        if (dc.document is Number) {
-                            Log.d (TAG,"Chatmessage document if of type number")
-                        }
-                        val chatMessage= dc.document.toObject(ChatMessage::class.java)
-                        if (chatMessage.uid == FirebaseAuth.getInstance().uid) {
-                            Log.d(TAG, "chatmessage is $chatMessage")
-                            adapter.add(ChatToMessage(chatMessage.content, chatMessage.name, chatMessage.timestamp.seconds))
-                        }
-
-                        if (chatMessage.uid != FirebaseAuth.getInstance().uid) {
-                            if (chatMessage.uid == "9999"){
-                                adapter.add(ChatUsernameChange(chatMessage.content, chatMessage.timestamp.seconds))
-                            } else {
+                        if(dc.document.getString("contentType").equals("TEXT")){
+                            val chatMessage= dc.document.toObject(ChatMessage::class.java)
+                            if (chatMessage.uid == FirebaseAuth.getInstance().uid) {
                                 Log.d(TAG, "chatmessage is $chatMessage")
-                                adapter.add(ChatFromMessage(chatMessage.content, chatMessage.name, chatMessage.timestamp.seconds))
+                                adapter.add(ChatToMessageItem(chatMessage.content, chatMessage.name, chatMessage.timestamp.seconds))
+                                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
+                            }
+
+                            if (chatMessage.uid != FirebaseAuth.getInstance().uid) {
+                                if (chatMessage.uid == "9999"){
+                                    adapter.add(ChatUsernameChangeMessageItem(chatMessage.content, chatMessage.timestamp.seconds))
+                                    recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
+                                } else {
+                                    Log.d(TAG, "chatmessage is $chatMessage")
+                                    adapter.add(ChatFromMessageItem(chatMessage.content, chatMessage.name, chatMessage.timestamp.seconds))
+                                    recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
+                                }
+                            }
+                        } else {
+                            val imageMessage= dc.document.toObject(ImageMessage::class.java)
+                            if (imageMessage.uid == FirebaseAuth.getInstance().uid) {
+                                adapter.add(ImageToMessageItem(imageMessage))
+                                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
+                                Log.d(TAG, "imageToMessage added to adapter")
+                            } else {
+                                adapter.add(ImageFromMessageItem(imageMessage))
+                                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
+                                Log.d(TAG, "imageFromMessage added to adapter")
                             }
                         }
                     }
-                    DocumentChange.Type.MODIFIED -> Log.d(TAG, "Modified city: ${dc.document.data}")
-                    DocumentChange.Type.REMOVED -> Log.d(TAG, "Removed city: ${dc.document.data}")
+                    DocumentChange.Type.MODIFIED -> TODO()
+                    DocumentChange.Type.REMOVED -> TODO()
                 }
             }
         }

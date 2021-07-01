@@ -12,13 +12,13 @@
         android:id="@+id/edittext_chat"
         android:layout_width="0dp"
         android:layout_height="50dp"
+        android:background="@drawable/rounded_chat_edit_text"
         android:ems="10"
         android:hint="Enter message"
         android:inputType="textPersonName"
-        android:background="@color/white"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/button_send_chat"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toEndOf="@+id/imageButton_chat" />
 
     <Button
         android:id="@+id/button_send_chat"
@@ -39,4 +39,15 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
+
+    <ImageButton
+        android:id="@+id/imageButton_chat"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@drawable/round_button"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:srcCompat="@drawable/ic_baseline_image_24" />
+
+
 </androidx.constraintlayout.widget.ConstraintLayout>
