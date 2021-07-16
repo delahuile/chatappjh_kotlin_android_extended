@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.chatappjh.items.*
@@ -23,8 +24,12 @@ import com.google.firebase.database.*
 import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.squareup.picasso.Picasso
+import com.stfalcon.imageviewer.StfalconImageViewer
+import com.xwray.groupie.Group
 import com.xwray.groupie.GroupAdapter
 import com.xwray.groupie.GroupieViewHolder
+import com.xwray.groupie.Section
 import kotlinx.android.synthetic.main.activity_chat.*
 import java.io.ByteArrayOutputStream
 import java.util.*
@@ -42,6 +47,10 @@ private const val RC_SELECT_IMAGE = 5
 
 public var displayWidth = 1
 public var displayHeight = 1
+
+lateinit var imageMessages: ArrayList<ImageMessage>
+
+private lateinit var viewer: StfalconImageViewer<ImageMessage>
 
 
 class ChatActivity : AppCompatActivity() {
@@ -66,6 +75,7 @@ class ChatActivity : AppCompatActivity() {
         displayHeight = display.heightPixels
 
         chatMessageIDs = ArrayList<String>()
+        imageMessages = ArrayList<ImageMessage>()
 
         // Initiates google sign in in case user is logged in with google authorization
         setupGoogleLogin()
@@ -80,6 +90,18 @@ class ChatActivity : AppCompatActivity() {
         }
 
         recyclerview_chat.setAdapter(adapter)
+
+        val textSection = Section()
+        val imageSection = Section()
+        val imageFromSection = Section()
+        val imageToSection = Section()
+        imageSection.add(imageFromSection)
+        imageSection.add(imageToSection)
+
+        // textSection in position 1 in adapter
+        adapter.add(textSection)
+        // imageSection in position 2 in adapter
+        adapter.add(imageSection)
 
         linearLayoutManager = LinearLayoutManager(this)
         linearLayoutManager.stackFromEnd = true
@@ -111,8 +133,9 @@ class ChatActivity : AppCompatActivity() {
                     }
                     Log.d(TAG, it.id + " => " + it.data)
                 }
-                // Scrolls recyclerview to the position of the last message
-                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
+                // Scrolls recyclerview to the position of the last message.
+                // Total number of messages is messages under textSection plus messages under imageSection.
+                recyclerview_chat.smoothScrollToPosition((adapter.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.itemCount)
             } else {
                 Log.d(TAG, "Current data: null")
             }
@@ -134,6 +157,36 @@ class ChatActivity : AppCompatActivity() {
 
     }
 
+    fun loadImageIntoExpandedView(image: ImageMessage) {
+        viewer = StfalconImageViewer.Builder<ImageMessage>(this, loadExtendedImageMessages()) { view, image ->
+            Picasso.get().load(image.expandedUrl).into(findViewById<ImageView>(R.id.expanded_image_chat))
+        }.show()
+    }
+
+    override fun onStart() {
+        super.onStart()
+
+
+            /*
+            StfalconImageViewer.Builder<ImageMessage>(this, Demo.posters, ::loadPosterImage)
+            .withStartPosition(startPosition)
+            .withTransitionFrom(target)
+            .withImageChangeListener {
+                viewer.updateTransitionImage(postersGridView.imageViews[it])
+            }
+            .show()
+
+
+            */
+    }
+
+    private fun loadExtendedImageMessages(): List<ImageMessage> {
+        var extendedFromImageMessages: List<ImageMessage> = ((adapter.getGroup(1) as? Section)!!.getGroup(1) as? Section)!!.groups.map {(it as ImageFromMessageItem).getImageMessage()}
+        var extendedToImageMessages: List<ImageMessage> = ((adapter.getGroup(1) as? Section)!!.getGroup(2) as? Section)!!.groups.map {(it as ImageToMessageItem).getImageMessage()}
+        var extendedImageMessages: List<ImageMessage> = extendedFromImageMessages+extendedToImageMessages
+        return extendedImageMessages
+    }
+
     private fun sendTextMessage(){
         val text = edittext_chat.text.toString()
 
@@ -146,7 +199,7 @@ class ChatActivity : AppCompatActivity() {
             .addOnCompleteListener {
                 Log.d(TAG, "message send into the database successfully")
                 edittext_chat.getText().clear()
-                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
+                recyclerview_chat.smoothScrollToPosition((adapter.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.itemCount)
             }
             .addOnFailureListener {
                 Log.d(TAG, "failed to send message into the database")
@@ -219,31 +272,34 @@ class ChatActivity : AppCompatActivity() {
                             val chatMessage= dc.document.toObject(ChatMessage::class.java)
                             if (chatMessage.uid == FirebaseAuth.getInstance().uid) {
                                 Log.d(TAG, "chatmessage is $chatMessage")
-                                adapter.add(ChatToMessageItem(chatMessage.content, chatMessage.name, chatMessage.timestamp.seconds))
-                                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
+                                // textSection in in position 1 in adapter
+                                (adapter.getGroup(1) as? Section)!!.add(ChatToMessageItem(chatMessage.content, chatMessage.name, chatMessage.timestamp.seconds))
+                                recyclerview_chat.smoothScrollToPosition((adapter.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.itemCount)
                             }
 
                             if (chatMessage.uid != FirebaseAuth.getInstance().uid) {
                                 if (chatMessage.uid == "9999"){
-                                    adapter.add(ChatUsernameChangeMessageItem(chatMessage.content, chatMessage.timestamp.seconds))
-                                    recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
+                                    (adapter.getGroup(1) as? Section)!!.add(ChatUsernameChangeMessageItem(chatMessage.content, chatMessage.timestamp.seconds))
+                                    recyclerview_chat.smoothScrollToPosition((adapter.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.itemCount)
                                 } else {
                                     Log.d(TAG, "chatmessage is $chatMessage")
-                                    adapter.add(ChatFromMessageItem(chatMessage.content, chatMessage.name, chatMessage.timestamp.seconds))
-                                    recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
+                                    (adapter.getGroup(1) as? Section)!!.add(ChatFromMessageItem(chatMessage.content, chatMessage.name, chatMessage.timestamp.seconds))
+                                    recyclerview_chat.smoothScrollToPosition((adapter.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.itemCount)
                                 }
                             }
                         } else {
                             val imageMessage= dc.document.toObject(ImageMessage::class.java)
                             if (imageMessage.uid == FirebaseAuth.getInstance().uid) {
-                                adapter.add(ImageToMessageItem(imageMessage))
-                                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
+                                // imageSection is in position 2 in adapter
+                                ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.add(ImageToMessageItem(imageMessage))
+                                recyclerview_chat.smoothScrollToPosition((adapter.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.itemCount)
                                 Log.d(TAG, "imageToMessage added to adapter")
                             } else {
-                                adapter.add(ImageFromMessageItem(imageMessage))
-                                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
+                                ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.add(ImageFromMessageItem(imageMessage))
+                                recyclerview_chat.smoothScrollToPosition((adapter.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.itemCount)
                                 Log.d(TAG, "imageFromMessage added to adapter")
                             }
+                            imageMessages.add(imageMessage)
                         }
                     }
                     DocumentChange.Type.MODIFIED -> TODO()

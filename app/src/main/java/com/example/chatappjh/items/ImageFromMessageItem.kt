@@ -115,6 +115,10 @@ class ImageFromMessageItem (val message: ImageMessage
         return R.layout.image_from_row
     }
 
+    public fun getImageMessage(): ImageMessage {
+        return message
+    }
+
     private fun getDateTimeKotlin(timestamp: Long): String? {
         try {
             val sdf = SimpleDateFormat("dd/MM/yyyy  HH:mm:ss")

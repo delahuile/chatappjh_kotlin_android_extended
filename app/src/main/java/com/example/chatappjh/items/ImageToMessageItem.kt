@@ -41,8 +41,6 @@ class ImageToMessageItem(val message: ImageMessage
         val TAG = "ImageToMessage"
     }
 
-
-
     override fun bind(viewHolder: GroupieViewHolder, position: Int) {
         val thumb1View: ImageView = viewHolder.itemView.imageView_to_chatmessage
 
@@ -118,6 +116,11 @@ class ImageToMessageItem(val message: ImageMessage
     override fun getLayout(): Int {
         return R.layout.image_to_row
     }
+
+    fun getImageMessage(): ImageMessage {
+        return message
+    }
+
 
     private fun getDateTimeKotlin(timestamp: Long): String? {
         try {

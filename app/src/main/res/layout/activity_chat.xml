@@ -49,5 +49,11 @@
         app:layout_constraintStart_toStartOf="parent"
         app:srcCompat="@drawable/ic_baseline_image_24" />
 
+    <ImageView
+        android:id="@+id/expanded_image_chat"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="invisible" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
