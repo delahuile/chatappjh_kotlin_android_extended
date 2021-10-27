@@ -1,0 +1,13 @@
+R_DEF: Internal format may change without notice
+local
+id backgroundView
+id dismissContainer
+id imagesPager
+id rootContainer
+id transitionImageContainer
+id transitionImageView
+layout view_image_viewer
+string library_name
+style ImageViewerDialog
+style ImageViewerDialog.Default
+style ImageViewerDialog.NoStatusBar

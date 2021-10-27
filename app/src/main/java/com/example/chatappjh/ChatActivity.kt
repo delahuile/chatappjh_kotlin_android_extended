@@ -1,15 +1,26 @@
 package com.example.chatappjh
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
+import android.content.res.Resources
+import android.graphics.*
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
+import com.bumptech.glide.Glide.with
 import com.example.chatappjh.items.*
 import com.example.chatappjh.models.*
 import com.example.chatappjh.utils.BitmapResolver
@@ -24,16 +35,21 @@ import com.google.firebase.database.*
 import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.ktx.storage
 import com.squareup.picasso.Picasso
 import com.stfalcon.imageviewer.StfalconImageViewer
-import com.xwray.groupie.Group
-import com.xwray.groupie.GroupAdapter
-import com.xwray.groupie.GroupieViewHolder
-import com.xwray.groupie.Section
+import com.xwray.groupie.*
 import kotlinx.android.synthetic.main.activity_chat.*
+import kotlinx.android.synthetic.main.image_from_row.view.*
+import kotlinx.android.synthetic.main.image_to_row.view.*
 import java.io.ByteArrayOutputStream
+import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
+import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.StringUtils.chop
 
 
 private lateinit var linearLayoutManager: LinearLayoutManager
@@ -49,6 +65,7 @@ public var displayWidth = 1
 public var displayHeight = 1
 
 lateinit var imageMessages: ArrayList<ImageMessage>
+lateinit var imageMessagePositionMap: HashMap<Int, Int>
 
 private lateinit var viewer: StfalconImageViewer<ImageMessage>
 
@@ -76,6 +93,7 @@ class ChatActivity : AppCompatActivity() {
 
         chatMessageIDs = ArrayList<String>()
         imageMessages = ArrayList<ImageMessage>()
+        imageMessagePositionMap = HashMap<Int, Int>()
 
         // Initiates google sign in in case user is logged in with google authorization
         setupGoogleLogin()
@@ -91,17 +109,6 @@ class ChatActivity : AppCompatActivity() {
 
         recyclerview_chat.setAdapter(adapter)
 
-        val textSection = Section()
-        val imageSection = Section()
-        val imageFromSection = Section()
-        val imageToSection = Section()
-        imageSection.add(imageFromSection)
-        imageSection.add(imageToSection)
-
-        // textSection in position 1 in adapter
-        adapter.add(textSection)
-        // imageSection in position 2 in adapter
-        adapter.add(imageSection)
 
         linearLayoutManager = LinearLayoutManager(this)
         linearLayoutManager.stackFromEnd = true
@@ -135,7 +142,7 @@ class ChatActivity : AppCompatActivity() {
                 }
                 // Scrolls recyclerview to the position of the last message.
                 // Total number of messages is messages under textSection plus messages under imageSection.
-                recyclerview_chat.smoothScrollToPosition((adapter.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.itemCount)
+                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
             } else {
                 Log.d(TAG, "Current data: null")
             }
@@ -157,34 +164,9 @@ class ChatActivity : AppCompatActivity() {
 
     }
 
-    fun loadImageIntoExpandedView(image: ImageMessage) {
-        viewer = StfalconImageViewer.Builder<ImageMessage>(this, loadExtendedImageMessages()) { view, image ->
-            Picasso.get().load(image.expandedUrl).into(findViewById<ImageView>(R.id.expanded_image_chat))
-        }.show()
-    }
-
     override fun onStart() {
         super.onStart()
 
-
-            /*
-            StfalconImageViewer.Builder<ImageMessage>(this, Demo.posters, ::loadPosterImage)
-            .withStartPosition(startPosition)
-            .withTransitionFrom(target)
-            .withImageChangeListener {
-                viewer.updateTransitionImage(postersGridView.imageViews[it])
-            }
-            .show()
-
-
-            */
-    }
-
-    private fun loadExtendedImageMessages(): List<ImageMessage> {
-        var extendedFromImageMessages: List<ImageMessage> = ((adapter.getGroup(1) as? Section)!!.getGroup(1) as? Section)!!.groups.map {(it as ImageFromMessageItem).getImageMessage()}
-        var extendedToImageMessages: List<ImageMessage> = ((adapter.getGroup(1) as? Section)!!.getGroup(2) as? Section)!!.groups.map {(it as ImageToMessageItem).getImageMessage()}
-        var extendedImageMessages: List<ImageMessage> = extendedFromImageMessages+extendedToImageMessages
-        return extendedImageMessages
     }
 
     private fun sendTextMessage(){
@@ -199,7 +181,7 @@ class ChatActivity : AppCompatActivity() {
             .addOnCompleteListener {
                 Log.d(TAG, "message send into the database successfully")
                 edittext_chat.getText().clear()
-                recyclerview_chat.smoothScrollToPosition((adapter.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.itemCount)
+                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
             }
             .addOnFailureListener {
                 Log.d(TAG, "failed to send message into the database")
@@ -272,34 +254,33 @@ class ChatActivity : AppCompatActivity() {
                             val chatMessage= dc.document.toObject(ChatMessage::class.java)
                             if (chatMessage.uid == FirebaseAuth.getInstance().uid) {
                                 Log.d(TAG, "chatmessage is $chatMessage")
-                                // textSection in in position 1 in adapter
-                                (adapter.getGroup(1) as? Section)!!.add(ChatToMessageItem(chatMessage.content, chatMessage.name, chatMessage.timestamp.seconds))
-                                recyclerview_chat.smoothScrollToPosition((adapter.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.itemCount)
+                                adapter.add(ChatToMessageItem(chatMessage.content, chatMessage.name, chatMessage.timestamp.seconds))
+                                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
                             }
 
                             if (chatMessage.uid != FirebaseAuth.getInstance().uid) {
                                 if (chatMessage.uid == "9999"){
-                                    (adapter.getGroup(1) as? Section)!!.add(ChatUsernameChangeMessageItem(chatMessage.content, chatMessage.timestamp.seconds))
-                                    recyclerview_chat.smoothScrollToPosition((adapter.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.itemCount)
+                                    adapter.add(ChatUsernameChangeMessageItem(chatMessage.content, chatMessage.timestamp.seconds))
+                                    recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
                                 } else {
                                     Log.d(TAG, "chatmessage is $chatMessage")
-                                    (adapter.getGroup(1) as? Section)!!.add(ChatFromMessageItem(chatMessage.content, chatMessage.name, chatMessage.timestamp.seconds))
-                                    recyclerview_chat.smoothScrollToPosition((adapter.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.itemCount)
+                                    adapter.add(ChatFromMessageItem(chatMessage.content, chatMessage.name, chatMessage.timestamp.seconds))
+                                    recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
                                 }
                             }
                         } else {
                             val imageMessage= dc.document.toObject(ImageMessage::class.java)
+                            imageMessages.add(imageMessage)
                             if (imageMessage.uid == FirebaseAuth.getInstance().uid) {
-                                // imageSection is in position 2 in adapter
-                                ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.add(ImageToMessageItem(imageMessage))
-                                recyclerview_chat.smoothScrollToPosition((adapter.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.itemCount)
+                                adapter.add(ImageToMessageItem(imageMessage))
+                                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
                                 Log.d(TAG, "imageToMessage added to adapter")
                             } else {
-                                ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.add(ImageFromMessageItem(imageMessage))
-                                recyclerview_chat.smoothScrollToPosition((adapter.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(1) as? Section)!!.itemCount + ((adapter.getGroup(2) as? Section)!!.getGroup(2) as? Section)!!.itemCount)
+                                adapter.add(ImageFromMessageItem(imageMessage))
+                                recyclerview_chat.smoothScrollToPosition(adapter.itemCount)
                                 Log.d(TAG, "imageFromMessage added to adapter")
                             }
-                            imageMessages.add(imageMessage)
+                            imageMessagePositionMap[adapter.itemCount-1] = imageMessages.size-1
                         }
                     }
                     DocumentChange.Type.MODIFIED -> TODO()
@@ -347,6 +328,147 @@ class ChatActivity : AppCompatActivity() {
                 .build()
         signInClient = GoogleSignIn.getClient(this, signInOptions)
 
+    }
+
+    inner class ImageFromMessageItem (val message: ImageMessage
+    ): Item<GroupieViewHolder>() {
+
+        override fun bind(viewHolder: GroupieViewHolder, position: Int) {
+
+            val thumbref = Firebase.storage.reference.child(message.thumbUrl)
+            thumbref.downloadUrl.addOnSuccessListener {Uri->
+
+                val thumbURL = Uri.toString()
+
+
+
+                Picasso.get().load(thumbURL)
+                    .into(viewHolder.itemView.imageView_from_chatmessage)
+
+                viewHolder.itemView.imageView_from_chatmessage.setOnClickListener {
+                    Log.d(TAG, "clicked imageView_from_chatmessage.setOnClickListener, imageMessage thumburl is ${message.thumbUrl}")
+
+                    StfalconImageViewer.Builder<ImageMessage>(
+                        this@ChatActivity, imageMessages
+                    ) { imageView, image ->
+                        Log.d(TAG, "image.expandedUrl inside Builder is ${image.expandedUrl}")
+                        Log.d(TAG, "imageView inside Builder is ${imageView}")
+                        Log.d(TAG, "imageMessageMap value is ${imageMessagePositionMap[position]}")
+
+                        val gsReference = FirebaseStorage.getInstance().getReferenceFromUrl("${chop(FirebaseStorage.getInstance().getReference().toString())}${image.expandedUrl}")
+                        gsReference.downloadUrl.addOnSuccessListener {uri->
+
+                            Picasso.get()
+                                .load(uri)
+                                .into(imageView)
+                        }
+                    }
+                        .withStartPosition(imageMessagePositionMap[position]!!)
+                        .withHiddenStatusBar(false)
+                        .withBackgroundColor(Color.parseColor("#000000"))
+                        .show(true)
+                }
+
+            }
+
+            viewHolder.itemView.textView_from_imageMessage.text = if(message.timestamp.seconds.toString().length==10) "${message.name}   ${getDateTimeKotlin(message.timestamp.seconds)}" else "${message.name}   ${getDateTimeReact(message.timestamp.seconds)}"
+        }
+
+        override fun getLayout(): Int {
+            return R.layout.image_from_row
+        }
+
+
+        private fun getDateTimeKotlin(timestamp: Long): String? {
+            try {
+                val sdf = SimpleDateFormat("dd/MM/yyyy  HH:mm:ss")
+                val netDate = Date(timestamp*1000)
+                return sdf.format(netDate)
+            } catch (e: Exception) {
+                return e.toString()
+            }
+        }
+
+        private fun getDateTimeReact(timestamp: Long): String? {
+            try {
+                val sdf = SimpleDateFormat("dd/MM/yyyy  HH:mm:ss")
+                val netDate = Date(timestamp)
+                return sdf.format(netDate)
+            } catch (e: Exception) {
+                return e.toString()
+            }
+        }
+    }
+
+    inner class ImageToMessageItem (val message: ImageMessage
+    ): Item<GroupieViewHolder>() {
+
+        override fun bind(viewHolder: GroupieViewHolder, position: Int) {
+
+            val thumbref = Firebase.storage.reference.child(message.thumbUrl)
+            thumbref.downloadUrl.addOnSuccessListener {Uri->
+
+                val thumbURL = Uri.toString()
+
+
+
+                Picasso.get().load(thumbURL)
+                    .into(viewHolder.itemView.imageView_to_chatmessage)
+
+                viewHolder.itemView.imageView_to_chatmessage.setOnClickListener {
+
+                    Log.d(TAG, "clicked imageView_to_chatmessage.setOnClickListener, imageMessage thumburl is ${message.thumbUrl}")
+
+                    StfalconImageViewer.Builder<ImageMessage>(
+                        this@ChatActivity, imageMessages
+                    ) { imageView, image ->
+                        Log.d(TAG, "image.expandedUrl inside Builder is ${image.expandedUrl}")
+                        Log.d(TAG, "imageView inside Builder is ${imageView}")
+                        Log.d(TAG, "imageMessageMap value is ${imageMessagePositionMap[position]}")
+
+                        val gsReference = FirebaseStorage.getInstance().getReferenceFromUrl("${chop(FirebaseStorage.getInstance().getReference().toString())}${image.expandedUrl}")
+                        gsReference.downloadUrl.addOnSuccessListener {uri->
+
+                            Picasso.get()
+                                .load(uri)
+                                .into(imageView)
+                        }
+                    }
+                        .withStartPosition(imageMessagePositionMap[position]!!)
+                        .withHiddenStatusBar(false)
+                        .withBackgroundColor(Color.parseColor("#000000"))
+                        .show(true)
+                }
+
+            }
+
+            viewHolder.itemView.textView_to_imageMessage.text = if(message.timestamp.seconds.toString().length==10) "${message.name}   ${getDateTimeKotlin(message.timestamp.seconds)}" else "${message.name}   ${getDateTimeReact(message.timestamp.seconds)}"
+        }
+
+        override fun getLayout(): Int {
+            return R.layout.image_to_row
+        }
+
+
+        private fun getDateTimeKotlin(timestamp: Long): String? {
+            try {
+                val sdf = SimpleDateFormat("dd/MM/yyyy  HH:mm:ss")
+                val netDate = Date(timestamp*1000)
+                return sdf.format(netDate)
+            } catch (e: Exception) {
+                return e.toString()
+            }
+        }
+
+        private fun getDateTimeReact(timestamp: Long): String? {
+            try {
+                val sdf = SimpleDateFormat("dd/MM/yyyy  HH:mm:ss")
+                val netDate = Date(timestamp)
+                return sdf.format(netDate)
+            } catch (e: Exception) {
+                return e.toString()
+            }
+        }
     }
 }
 

@@ -1,18 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/containerTo"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:paddingTop="24dp">
 
-    <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingTop="24dp"
-        tools:ignore="MissingConstraints">
 
-        <ImageView
+    <ImageView
         android:id="@+id/imageView_to_chatmessage"
         android:layout_width="250dp"
         android:layout_height="wrap_content"
@@ -25,35 +20,20 @@
         tools:ignore="MissingConstraints"
         tools:srcCompat="@tools:sample/avatars" />
 
-        <TextView
-            android:id="@+id/textView_to_imageMessage"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:background="@drawable/rounded_top_textview"
-            android:paddingLeft="5dp"
-            android:paddingTop="2dp"
-            android:paddingRight="5dp"
-            android:paddingBottom="2dp"
-            android:text="Name: Date"
-            android:textColor="#1E1E1E"
-            app:layout_constraintEnd_toEndOf="@+id/imageView_to_chatmessage"
-            app:layout_constraintStart_toStartOf="@+id/imageView_to_chatmessage"
-            app:layout_constraintTop_toTopOf="parent" />
+    <TextView
+        android:id="@+id/textView_to_imageMessage"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/rounded_top_textview"
+        android:paddingLeft="5dp"
+        android:paddingTop="2dp"
+        android:paddingRight="5dp"
+        android:paddingBottom="2dp"
+        android:text="Name: Date"
+        android:textColor="#1E1E1E"
+        app:layout_constraintEnd_toEndOf="@+id/imageView_to_chatmessage"
+        app:layout_constraintStart_toStartOf="@+id/imageView_to_chatmessage"
+        app:layout_constraintTop_toTopOf="parent" />
 
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- This initially-hidden ImageView will hold the expanded/zoomed version of
-         the images above. Without transformations applied, it takes up the entire
-         screen. To achieve the "zoom" animation, this view's bounds are animated
-         from the bounds of the thumbnail button above, to its final laid-out
-         bounds.
-         -->
-
-    <com.github.chrisbanes.photoview.PhotoView
-        android:id="@+id/expanded_image_to"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="invisible" />
-
-</FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
